@@ -1,32 +1,44 @@
-# ali-flux-dev MCP Server
+# Ali-Flux MCP Server
 
-A Model Context Protocol server
+[中文文档](README-zh.md)
 
-This is a TypeScript-based MCP server that implements a simple notes system. It demonstrates core MCP concepts by providing:
+A Model Context Protocol server for Alibaba Cloud DashScope API
 
-- Resources representing text notes with URIs and metadata
-- Tools for creating new notes
-- Prompts for generating summaries of notes
+This is a TypeScript-based MCP server that provides functionality to interact with Alibaba Cloud DashScope API for generating images and saving them locally. It demonstrates core MCP concepts by providing:
+
+- Tools for generating images using Alibaba Cloud DashScope API
+- Tools for checking task status
+- Tools for downloading generated images and saving them locally
 
 ## Features
 
-### Resources
-- List and access notes via `note://` URIs
-- Each note has a title, content and metadata
-- Plain text mime type for simple content access
-
 ### Tools
-- `create_note` - Create new text notes
-  - Takes title and content as required parameters
-  - Stores note in server state
+- `generate_image` - Generate images using Alibaba Cloud DashScope API
+  - Takes prompt as required parameter
+  - Optional parameters: size, seed, steps
+  - Submits image generation task to DashScope API
 
-### Prompts
-- `summarize_notes` - Generate a summary of all stored notes
-  - Includes all note contents as embedded resources
-  - Returns structured prompt for LLM summarization
+- `check_task_status` - Check image generation task status
+  - Takes task_id as required parameter
+  - Returns the current status of the image generation task
+
+- `download_image` - Download generated images and save them locally
+  - Takes task_id as required parameter
+  - Optional parameter: save_path for custom save location
+  - Downloads all generated images and saves them to the specified directory
 
 ## Development
 
+### Prerequisites
+- Node.js and npm
+- Alibaba Cloud DashScope API key
+
+### Environment Variables
+- `DASHSCOPE_API_KEY`: Your Alibaba Cloud DashScope API key
+- `SAVE_DIR`: Directory to save generated images (default: ~/Desktop/flux-images)
+- `MODEL_NAME`: DashScope model name (default: flux-merged)
+
+### Setup
 Install dependencies:
 ```bash
 npm install
@@ -44,7 +56,8 @@ npm run watch
 
 ## Installation
 
-To use with Claude Desktop, add the server config:
+### Configuration
+To use with Claude Desktop or other MCP-compatible clients, add the server config:
 
 On MacOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
 On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
@@ -53,7 +66,11 @@ On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
 {
   "mcpServers": {
     "ali-flux": {
-      "command": "/path/to/ali-flux/build/index.js"
+      "command": "/path/to/ali-flux/build/index.js",
+      "env": {
+        "DASHSCOPE_API_KEY": "your-api-key-here",
+        "SAVE_DIR": "/custom/save/path" // Optional
+      }
     }
   }
 }
