@@ -28,6 +28,8 @@ const API_KEY = process.env.DASHSCOPE_API_KEY || "example-key";
 const SAVE_DIR =
   process.env.SAVE_DIR || path.join(os.homedir(), "Desktop", "flux-images");
 const MODEL_NAME = process.env.MODEL_NAME || "flux-merged";
+// Working directory for resolving relative paths
+const WORK_DIR = process.env.WORK_DIR || process.cwd();
 
 // Ensure save directory exists
 if (!fs.existsSync(SAVE_DIR)) {
@@ -50,12 +52,15 @@ const isValidGenerateImageArgs = (
 
 const isValidTaskIdArgs = (
   args: any
-): args is { task_id: string; save_path?: string } => {
+): args is { task_id: string; save_path?: string; base_dir?: string } => {
   return (
     typeof args === "object" &&
     args !== null &&
     typeof args.task_id === "string" &&
-    (args.save_path === undefined || typeof args.save_path === "string")
+    (args.save_path === undefined ||
+      (typeof args.save_path === "string" &&
+        (path.isAbsolute(args.save_path) || args.save_path === ""))) &&
+    (args.base_dir === undefined || typeof args.base_dir === "string")
   );
 };
 
@@ -147,7 +152,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             save_path: {
               type: "string",
               description:
-                "Custom save path, uses default path if not provided",
+                "Absolute path where to save the file (e.g. /Users/username/Downloads/image.jpg). Must be an absolute path.",
+            },
+            base_dir: {
+              type: "string",
+              description:
+                "Base directory for resolving relative paths. Defaults to WORK_DIR environment variable or current working directory",
             },
           },
           required: ["task_id"],
@@ -319,19 +329,106 @@ async function downloadImage(args: unknown) {
 
     // 4. Download all images
     const downloadResults = [];
-    // Determine save directory
-    const customSavePath = (args as { task_id: string; save_path?: string })
-      .save_path;
-    const targetDir = customSavePath ? customSavePath : SAVE_DIR;
+    // Process save path and base directory
+    const typedArgs = args as {
+      task_id: string;
+      save_path?: string;
+      base_dir?: string;
+    };
 
-    // Ensure target directory exists
-    if (!fs.existsSync(targetDir)) {
-      fs.mkdirSync(targetDir, { recursive: true });
+    const customSavePath = typedArgs.save_path;
+    // Get base directory - prioritize base_dir from request, then WORK_DIR env var
+    const baseDir = typedArgs.base_dir || WORK_DIR;
+
+    let targetDir: string;
+    let customFilename: string | null = null;
+    let fullSavePath: string;
+
+    if (customSavePath) {
+      // Verify path is absolute
+      if (!path.isAbsolute(customSavePath)) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Invalid save_path: "${customSavePath}". Must be an absolute path (e.g. /Users/username/Downloads/image.jpg)`,
+            },
+          ],
+          isError: true,
+        };
+      }
+      // Check if customSavePath looks like a file path (has extension)
+      const parsedPath = path.parse(customSavePath);
+      const hasExtension = parsedPath.ext && parsedPath.base !== parsedPath.dir;
+
+      if (hasExtension) {
+        // It has an extension, treat as file path
+        // Special handling for single filenames without path separators
+        if (
+          !customSavePath.includes(path.sep) &&
+          !customSavePath.includes("/")
+        ) {
+          // If it's just a filename without path separators, use baseDir directly
+          targetDir = ""; // Empty string will be joined with baseDir later
+        } else {
+          // If it has path separators, extract the directory part
+          targetDir = path.dirname(customSavePath);
+        }
+        customFilename = parsedPath.base;
+      } else {
+        // No extension or ends with separator, treat as directory
+        targetDir = customSavePath;
+      }
+    } else {
+      // No custom path, use default
+      targetDir = SAVE_DIR;
+    }
+
+    // Handle directory creation more carefully
+    try {
+      // For relative paths, join with the base directory
+      let absoluteTargetDir: string;
+
+      if (path.isAbsolute(targetDir)) {
+        // If it's already an absolute path, use it directly
+        absoluteTargetDir = targetDir;
+      } else {
+        // If it's a relative path or empty string, join with the base directory
+        // Using path.join instead of path.resolve for more predictable behavior with empty strings
+        absoluteTargetDir = path.join(baseDir, targetDir);
+      }
+
+      console.error(
+        `Resolving path: ${
+          targetDir ? targetDir : "(empty)"
+        } against base: ${baseDir} => ${absoluteTargetDir}`
+      );
+
+      if (!fs.existsSync(absoluteTargetDir)) {
+        fs.mkdirSync(absoluteTargetDir, { recursive: true });
+      }
+
+      // Update targetDir to use the absolute path for all subsequent operations
+      targetDir = absoluteTargetDir;
+    } catch (err) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Failed to create directory: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          },
+        ],
+        isError: true,
+      };
     }
 
     for (let i = 0; i < imageUrls.length; i++) {
       const url = imageUrls[i];
-      const filename = `${args.task_id}_${i}.png`;
+      // Use custom filename for the first image if provided, otherwise use default naming
+      const filename =
+        i === 0 && customFilename ? customFilename : `${args.task_id}_${i}.png`;
       const savePath = path.join(targetDir, filename);
 
       const imageResponse = await axios.get(url, {
