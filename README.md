@@ -52,8 +52,8 @@ On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
 ```json
 {
   "mcpServers": {
-    "flux-dev": {
-      "command": "/path/to/flux-dev/build/index.js"
+    "ali-flux": {
+      "command": "/path/to/ali-flux/build/index.js"
     }
   }
 }

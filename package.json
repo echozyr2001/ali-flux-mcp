@@ -1,11 +1,11 @@
 {
-  "name": "flux-dev",
+  "name": "ali-flux",
   "version": "0.1.0",
   "description": "A Model Context Protocol server",
   "private": true,
   "type": "module",
   "bin": {
-    "flux-dev": "./build/index.js"
+    "ali-flux": "./build/index.js"
   },
   "files": [
     "build"

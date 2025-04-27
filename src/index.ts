@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * Flux-Dev MCP服务器
+ * Ali-Flux MCP Server
  *
- * 这个MCP服务器提供与阿里云DashScope API交互的功能，用于生成图片并保存到本地。
- * 提供以下工具：
- * - generate_image: 提交图片生成任务
- * - check_task_status: 检查任务状态
- * - download_image: 下载生成的图片并保存到本地
+ * This MCP server provides functionality to interact with Alibaba Cloud DashScope API for generating images and saving them locally.
+ * Provides the following tools:
+ * - generate_image: Submit image generation task
+ * - check_task_status: Check task status
+ * - download_image: Download generated images and save them locally
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -23,18 +23,18 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
-// 配置
+// Configuration
 const API_KEY = process.env.DASHSCOPE_API_KEY || "example-key";
 const SAVE_DIR =
   process.env.SAVE_DIR || path.join(os.homedir(), "Desktop", "flux-images");
 const MODEL_NAME = process.env.MODEL_NAME || "flux-merged";
 
-// 确保保存目录存在
+// Ensure save directory exists
 if (!fs.existsSync(SAVE_DIR)) {
   fs.mkdirSync(SAVE_DIR, { recursive: true });
 }
 
-// 工具参数验证函数
+// Tool argument validation functions
 const isValidGenerateImageArgs = (
   args: any
 ): args is { prompt: string; size?: string; seed?: number; steps?: number } => {
@@ -60,11 +60,11 @@ const isValidTaskIdArgs = (
 };
 
 /**
- * 创建MCP服务器
+ * Create MCP server
  */
 const server = new Server(
   {
-    name: "flux-dev",
+    name: "ali-flux",
     version: "0.1.0",
   },
   {
@@ -75,7 +75,7 @@ const server = new Server(
 );
 
 /**
- * 设置HTTP客户端
+ * Set up HTTP client
  */
 const apiClient = axios.create({
   baseURL: "https://dashscope.aliyuncs.com/api/v1",
@@ -87,34 +87,34 @@ const apiClient = axios.create({
 });
 
 /**
- * 列出可用工具
+ * List available tools
  */
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
       {
         name: "generate_image",
-        description: "使用阿里云DashScope API生成图片",
+        description: "Generate images using Alibaba Cloud DashScope API",
         inputSchema: {
           type: "object",
           properties: {
             prompt: {
               type: "string",
-              description: "图片生成提示词",
+              description: "Image generation prompt",
             },
             size: {
               type: "string",
               description:
-                '图片尺寸，可选值: "1024*1024", "720*1280", "1280*720"',
+                'Image size, available options: "1024*1024", "720*1280", "1280*720"',
               default: "1024*1024",
             },
             seed: {
               type: "number",
-              description: "随机种子",
+              description: "Random seed",
             },
             steps: {
               type: "number",
-              description: "迭代步数",
+              description: "Iteration steps",
             },
           },
           required: ["prompt"],
@@ -122,13 +122,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "check_task_status",
-        description: "检查图片生成任务状态",
+        description: "Check image generation task status",
         inputSchema: {
           type: "object",
           properties: {
             task_id: {
               type: "string",
-              description: "任务ID",
+              description: "Task ID",
             },
           },
           required: ["task_id"],
@@ -136,17 +136,18 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "download_image",
-        description: "下载生成的图片并保存到本地",
+        description: "Download generated images and save them locally",
         inputSchema: {
           type: "object",
           properties: {
             task_id: {
               type: "string",
-              description: "任务ID",
+              description: "Task ID",
             },
             save_path: {
               type: "string",
-              description: "自定义保存路径，如不提供则使用默认路径",
+              description:
+                "Custom save path, uses default path if not provided",
             },
           },
           required: ["task_id"],
@@ -157,7 +158,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 });
 
 /**
- * 处理工具调用
+ * Handle tool calls
  */
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   switch (request.params.name) {
@@ -170,17 +171,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     default:
       throw new McpError(
         ErrorCode.MethodNotFound,
-        `未知工具: ${request.params.name}`
+        `Unknown tool: ${request.params.name}`
       );
   }
 });
 
 /**
- * 生成图片
+ * Generate image
  */
 async function generateImage(args: unknown) {
   if (!isValidGenerateImageArgs(args)) {
-    throw new McpError(ErrorCode.InvalidParams, "无效的图片生成参数");
+    throw new McpError(
+      ErrorCode.InvalidParams,
+      "Invalid image generation parameters"
+    );
   }
 
   try {
@@ -216,7 +220,7 @@ async function generateImage(args: unknown) {
         content: [
           {
             type: "text",
-            text: `API请求错误: ${
+            text: `API request error: ${
               JSON.stringify(error.response?.data) || error.message
             }`,
           },
@@ -229,11 +233,11 @@ async function generateImage(args: unknown) {
 }
 
 /**
- * 检查任务状态
+ * Check task status
  */
 async function checkTaskStatus(args: unknown) {
   if (!isValidTaskIdArgs(args)) {
-    throw new McpError(ErrorCode.InvalidParams, "无效的任务ID参数");
+    throw new McpError(ErrorCode.InvalidParams, "Invalid task ID parameter");
   }
 
   try {
@@ -253,7 +257,7 @@ async function checkTaskStatus(args: unknown) {
         content: [
           {
             type: "text",
-            text: `API请求错误: ${
+            text: `API request error: ${
               JSON.stringify(error.response?.data) || error.message
             }`,
           },
@@ -266,26 +270,26 @@ async function checkTaskStatus(args: unknown) {
 }
 
 /**
- * 下载图片并保存到本地
+ * Download image and save locally
  */
 async function downloadImage(args: unknown) {
   if (!isValidTaskIdArgs(args)) {
-    throw new McpError(ErrorCode.InvalidParams, "无效的任务ID参数");
+    throw new McpError(ErrorCode.InvalidParams, "Invalid task ID parameter");
   }
 
   try {
-    // 1. 首先检查任务状态
+    // 1. First check task status
     const statusResponse = await apiClient.get(`/tasks/${args.task_id}`);
 
     const statusData = statusResponse.data;
 
-    // 2. 检查任务是否成功完成
+    // 2. Check if task completed successfully
     if (statusData.output.task_status !== "SUCCEEDED") {
       return {
         content: [
           {
             type: "text",
-            text: `任务尚未完成或已失败: ${JSON.stringify(
+            text: `Task not completed or failed: ${JSON.stringify(
               statusData,
               null,
               2
@@ -296,7 +300,7 @@ async function downloadImage(args: unknown) {
       };
     }
 
-    // 3. 获取图片URL
+    // 3. Get image URLs
     const imageUrls = statusData.output.results.map(
       (result: any) => result.url
     );
@@ -306,21 +310,21 @@ async function downloadImage(args: unknown) {
         content: [
           {
             type: "text",
-            text: "没有找到图片URL",
+            text: "No image URL found",
           },
         ],
         isError: true,
       };
     }
 
-    // 4. 下载所有图片
+    // 4. Download all images
     const downloadResults = [];
-    // 确定保存目录
+    // Determine save directory
     const customSavePath = (args as { task_id: string; save_path?: string })
       .save_path;
     const targetDir = customSavePath ? customSavePath : SAVE_DIR;
 
-    // 确保目标目录存在
+    // Ensure target directory exists
     if (!fs.existsSync(targetDir)) {
       fs.mkdirSync(targetDir, { recursive: true });
     }
@@ -348,7 +352,7 @@ async function downloadImage(args: unknown) {
           type: "text",
           text: JSON.stringify(
             {
-              message: "图片下载完成",
+              message: "Image download completed",
               task_id: args.task_id,
               downloads: downloadResults,
             },
@@ -364,7 +368,7 @@ async function downloadImage(args: unknown) {
         content: [
           {
             type: "text",
-            text: `API请求错误: ${
+            text: `API request error: ${
               JSON.stringify(error.response?.data) || error.message
             }`,
           },
@@ -377,15 +381,15 @@ async function downloadImage(args: unknown) {
 }
 
 /**
- * 启动服务器
+ * Start server
  */
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error("Flux-Dev MCP服务器运行中...");
+  console.error("Ali-Flux MCP server running...");
 }
 
 main().catch((error) => {
-  console.error("服务器错误:", error);
+  console.error("Server error:", error);
   process.exit(1);
 });
