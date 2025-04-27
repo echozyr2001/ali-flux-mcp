@@ -24,7 +24,8 @@ This is a TypeScript-based MCP server that provides functionality to interact wi
 
 - `download_image` - Download generated images and save them locally
   - Takes task_id as required parameter
-  - Optional parameter: save_path for custom save location
+  - Optional parameter: save_path for custom save location (must be an absolute path)
+  - Optional parameter: base_dir for resolving relative paths (defaults to WORK_DIR environment variable)
   - Downloads all generated images and saves them to the specified directory
 
 ## Development
@@ -37,6 +38,7 @@ This is a TypeScript-based MCP server that provides functionality to interact wi
 - `DASHSCOPE_API_KEY`: Your Alibaba Cloud DashScope API key
 - `SAVE_DIR`: Directory to save generated images (default: ~/Desktop/flux-images)
 - `MODEL_NAME`: DashScope model name (default: flux-merged)
+- `WORK_DIR`: Work directory (default: process.cwd())
 
 ### Setup
 Install dependencies:

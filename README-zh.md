@@ -22,7 +22,8 @@
 
 - `download_image` - 下载生成的图片并保存到本地
   - 需要提供 task_id 参数
-  - 可选参数：save_path 用于自定义保存位置
+  - 可选参数：save_path 用于自定义保存位置（必须是绝对路径）
+  - 可选参数：base_dir 用于解析相对路径（默认为 WORK_DIR 环境变量）
   - 下载所有生成的图片并保存到指定目录
 
 ## 开发
@@ -35,6 +36,7 @@
 - `DASHSCOPE_API_KEY`：您的阿里云 DashScope API 密钥
 - `SAVE_DIR`：保存生成图片的目录（默认：~/Desktop/flux-images）
 - `MODEL_NAME`：DashScope 模型名称（默认：flux-merged）
+- `WORK_DIR`：工作路径（默认：process.cwd()）
 
 ### 设置
 安装依赖：
